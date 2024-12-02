@@ -36,7 +36,7 @@
     "翻译",
     "翻譯",
     "翻譯",
-  ]; // Add more as needed
+  ]; // Add more as needed (Currentlty Thai button is still "Translate")
 
   let detectedLanguage = null; // Placeholder for detected language
 

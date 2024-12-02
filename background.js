@@ -1,8 +1,8 @@
 // background.js
 
-/**
- * Listener for messages from content scripts.
- */
+let lastApiCallTime = 0;
+
+//Listener for messages from content script.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "translatePost") {
     const post = message.post;
@@ -136,6 +136,33 @@ async function translatePost(post) {
   return translatedText;
 }
 
+async function rateLimitedApiCall(url, options) {
+  const now = Date.now();
+  const timeSinceLastCall = now - lastApiCallTime;
+
+  // Ensure at least 2 seconds between API calls
+  if (timeSinceLastCall < 2000) {
+    const delay = 2000 - timeSinceLastCall;
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+
+  lastApiCallTime = Date.now(); // Update the last API call timestamp
+
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    throw new Error(`API call failed: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Translates text using OpenAI's API.
+ * @param {string} text - Text to translate.
+ * @param {string} apiKey - OpenAI API key.
+ * @param {string} targetLanguageName - Target language.
+ * @param {string} prompt - Custom translation prompt.
+ * @returns {Promise<string>} - Translated text.
+ */
 /**
  * Translates text using OpenAI's API.
  * @param {string} text - Text to translate.
@@ -160,7 +187,8 @@ async function translateWithOpenAI(text, apiKey, targetLanguageName, prompt) {
     },
   ];
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const url = "https://api.openai.com/v1/chat/completions";
+  const options = {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -170,14 +198,9 @@ async function translateWithOpenAI(text, apiKey, targetLanguageName, prompt) {
       model: "gpt-4o-mini", // Adjust model as needed
       messages,
     }),
-  });
+  };
 
-  if (!response.ok) {
-    const errorData = await response.text();
-    throw new Error(`OpenAI API Error: ${errorData}`);
-  }
-
-  const data = await response.json();
+  const data = await rateLimitedApiCall(url, options);
 
   if (data.choices && data.choices.length) {
     return data.choices[0].message.content.trim();
@@ -196,13 +219,9 @@ async function translateWithGoogle(text, apiKey, targetLanguage) {
   const encodedText = encodeURIComponent(text);
   const url = `https://translation.googleapis.com/language/translate/v2?key=${apiKey}&q=${encodedText}&target=${targetLanguage}`;
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    const errorData = await response.text();
-    throw new Error(`Google Translate API Error: ${errorData}`);
-  }
-
-  const data = await response.json();
+  const data = await rateLimitedApiCall(url, {
+    method: "GET",
+  });
 
   if (data.data && data.data.translations && data.data.translations.length) {
     return data.data.translations[0].translatedText;
