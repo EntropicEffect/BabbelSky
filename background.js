@@ -78,7 +78,7 @@ async function translatePost(post) {
     let openaiApiKey = '';
     let translatedText = '';
 
-    if (translationService === 'Google' && googleApiKey) {
+    if (translationService === 'Google' && encryptedGoogleApiKey) {
         const encryptedGoogleData = JSON.parse(encryptedGoogleApiKey);
         googleApiKey = await decryptData(key, encryptedGoogleData.iv, encryptedGoogleData.ciphertext);
         translatedText = await translateWithGoogle(post, googleApiKey, targetLanguage);
