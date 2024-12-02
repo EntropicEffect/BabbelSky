@@ -13,10 +13,13 @@ const defaultOpenAIPrompt = "Translate the following text to natural {TARGET}:\n
  */
 function getStorage(keys) {
   return new Promise((resolve, reject) => {
+    console.log('getStorage: Retrieving keys:', keys);
     chrome.storage.sync.get(keys, (items) => {
       if (chrome.runtime.lastError) {
+        console.error('getStorage: Error retrieving keys:', chrome.runtime.lastError);
         reject(chrome.runtime.lastError);
       } else {
+        console.log('getStorage: Retrieved items:', items);
         resolve(items);
       }
     });
@@ -30,10 +33,13 @@ function getStorage(keys) {
  */
 function setStorage(items) {
   return new Promise((resolve, reject) => {
+    console.log('setStorage: Storing items:', items);
     chrome.storage.sync.set(items, () => {
       if (chrome.runtime.lastError) {
+        console.error('setStorage: Error storing items:', chrome.runtime.lastError);
         reject(chrome.runtime.lastError);
       } else {
+        console.log('setStorage: Items stored successfully');
         resolve();
       }
     });
@@ -47,10 +53,13 @@ function setStorage(items) {
  */
 function removeStorage(keys) {
   return new Promise((resolve, reject) => {
+    console.log('removeStorage: Removing keys:', keys);
     chrome.storage.sync.remove(keys, () => {
       if (chrome.runtime.lastError) {
+        console.error('removeStorage: Error removing keys:', chrome.runtime.lastError);
         reject(chrome.runtime.lastError);
       } else {
+        console.log('removeStorage: Keys removed successfully');
         resolve();
       }
     });
@@ -64,10 +73,13 @@ function removeStorage(keys) {
  */
 function getLocalStorage(keys) {
   return new Promise((resolve, reject) => {
+    console.log('getLocalStorage: Retrieving keys:', keys);
     chrome.storage.local.get(keys, (items) => {
       if (chrome.runtime.lastError) {
+        console.error('getLocalStorage: Error retrieving keys:', chrome.runtime.lastError);
         reject(chrome.runtime.lastError);
       } else {
+        console.log('getLocalStorage: Retrieved items:', items);
         resolve(items);
       }
     });
@@ -81,10 +93,13 @@ function getLocalStorage(keys) {
  */
 function setLocalStorage(items) {
   return new Promise((resolve, reject) => {
+    console.log('setLocalStorage: Storing items:', items);
     chrome.storage.local.set(items, () => {
       if (chrome.runtime.lastError) {
+        console.error('setLocalStorage: Error storing items:', chrome.runtime.lastError);
         reject(chrome.runtime.lastError);
       } else {
+        console.log('setLocalStorage: Items stored successfully');
         resolve();
       }
     });
@@ -97,10 +112,13 @@ function setLocalStorage(items) {
  * @returns {string} - Base64 encoded string.
  */
 function arrayBufferToBase64(buffer) {
+  console.log('arrayBufferToBase64: Converting ArrayBuffer to Base64');
   let binary = '';
   const bytes = new Uint8Array(buffer);
   bytes.forEach((b) => binary += String.fromCharCode(b));
-  return window.btoa(binary);
+  const base64 = window.btoa(binary);
+  console.log('arrayBufferToBase64: Conversion result:', base64);
+  return base64;
 }
 
 /**
@@ -109,12 +127,15 @@ function arrayBufferToBase64(buffer) {
  * @returns {ArrayBuffer} - The resulting ArrayBuffer.
  */
 function base64ToArrayBuffer(base64) {
+  console.log('base64ToArrayBuffer: Converting Base64 to ArrayBuffer');
   const binary = window.atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  return bytes.buffer;
+  const arrayBuffer = bytes.buffer;
+  console.log('base64ToArrayBuffer: Conversion result:', arrayBuffer);
+  return arrayBuffer;
 }
 
 /**
@@ -122,7 +143,10 @@ function base64ToArrayBuffer(base64) {
  * @returns {Uint8Array} - The generated IV.
  */
 function generateIV() {
-  return window.crypto.getRandomValues(new Uint8Array(12));
+  console.log('generateIV: Generating random IV');
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  console.log('generateIV: Generated IV:', iv);
+  return iv;
 }
 
 /**
@@ -130,11 +154,12 @@ function generateIV() {
  * @returns {Promise<CryptoKey>} - The encryption key.
  */
 async function getEncryptionKey() {
+  console.log('getEncryptionKey: Retrieving encryption key');
   const localItems = await getLocalStorage(['encryptionKey']);
   let key = null;
 
   if (localItems.encryptionKey) {
-    // Key exists, import it
+    console.log('getEncryptionKey: Existing encryption key found');
     const rawKey = base64ToArrayBuffer(localItems.encryptionKey);
     key = await window.crypto.subtle.importKey(
       'raw',
@@ -143,8 +168,9 @@ async function getEncryptionKey() {
       true,
       ['encrypt', 'decrypt']
     );
+    console.log('getEncryptionKey: Imported existing encryption key');
   } else {
-    // Generate a new key
+    console.log('getEncryptionKey: No existing key found, generating new key');
     key = await window.crypto.subtle.generateKey(
       {
         name: 'AES-GCM',
@@ -154,10 +180,10 @@ async function getEncryptionKey() {
       ['encrypt', 'decrypt']
     );
 
-    // Export and store the key
     const exportedKey = await window.crypto.subtle.exportKey('raw', key);
     const exportedKeyBase64 = arrayBufferToBase64(exportedKey);
     await setLocalStorage({ encryptionKey: exportedKeyBase64 });
+    console.log('getEncryptionKey: Generated and stored new encryption key');
   }
 
   return key;
@@ -170,6 +196,7 @@ async function getEncryptionKey() {
  * @returns {Promise<Object>} - An object containing the IV and ciphertext.
  */
 async function encryptData(key, data) {
+  console.log('encryptData: Encrypting data');
   const encoder = new TextEncoder();
   const iv = generateIV();
   const ciphertext = await window.crypto.subtle.encrypt(
@@ -181,10 +208,12 @@ async function encryptData(key, data) {
     encoder.encode(data)
   );
 
-  return {
+  const result = {
     iv: arrayBufferToBase64(iv),
     ciphertext: arrayBufferToBase64(ciphertext)
   };
+  console.log('encryptData: Encryption result:', result);
+  return result;
 }
 
 /**
@@ -195,6 +224,7 @@ async function encryptData(key, data) {
  * @returns {Promise<string>} - The decrypted plaintext data.
  */
 async function decryptData(key, ivBase64, ciphertextBase64) {
+  console.log('decryptData: Decrypting data');
   const decoder = new TextDecoder();
   const iv = new Uint8Array(base64ToArrayBuffer(ivBase64));
   const ciphertext = base64ToArrayBuffer(ciphertextBase64);
@@ -208,9 +238,11 @@ async function decryptData(key, ivBase64, ciphertextBase64) {
       key,
       ciphertext
     );
-    return decoder.decode(decrypted);
+    const decryptedText = decoder.decode(decrypted);
+    console.log('decryptData: Decryption successful:', decryptedText);
+    return decryptedText;
   } catch (e) {
-    console.error('Decryption failed:', e);
+    console.error('decryptData: Decryption failed:', e);
     throw new Error('Failed to decrypt data. Possible data corruption.');
   }
 }
@@ -221,23 +253,21 @@ async function decryptData(key, ivBase64, ciphertextBase64) {
  * @param {string} type - The type of message ('success' or 'error').
  */
 function displayMessage(message, type) {
-  // Remove existing messages
+  console.log('displayMessage: Displaying message:', message, 'Type:', type);
   const existingMessages = document.querySelectorAll('.inline-message');
   existingMessages.forEach(msg => msg.remove());
 
-  // Create a new message div
   const messageDiv = document.createElement('div');
   messageDiv.textContent = message;
   messageDiv.className = `inline-message ${type}-message`;
   messageDiv.style.marginTop = '10px';
   messageDiv.style.color = type === 'success' ? 'green' : 'red';
 
-  // Append the message to the form
   document.getElementById('optionsForm').appendChild(messageDiv);
 
-  // Remove the message after 5 seconds
   setTimeout(() => {
     messageDiv.remove();
+    console.log('displayMessage: Message removed after timeout');
   }, 5000);
 }
 
@@ -246,73 +276,71 @@ function displayMessage(message, type) {
  * @returns {Promise<void>}
  */
 async function saveOptions() {
+  console.log('saveOptions: Saving options');
   const googleApiKey = document.getElementById('googleApiKey').value.trim();
   const openaiApiKey = document.getElementById('openaiApiKey').value.trim();
   const targetLanguage = document.getElementById('targetLanguage').value;
   let openaiPrompt = document.getElementById('openaiPrompt').value.trim();
 
-  // If the OpenAI prompt is empty or whitespace, use the default prompt
   if (!openaiPrompt) {
     openaiPrompt = defaultOpenAIPrompt;
-    document.getElementById('openaiPrompt').value = openaiPrompt; // Update the textarea
+    document.getElementById('openaiPrompt').value = openaiPrompt;
+    console.log('saveOptions: OpenAI prompt was empty, set to default');
   }
 
-  // Get selected translation service
   let translationService = null;
   const serviceOpenAI = document.getElementById('serviceOpenAI');
   const serviceGoogle = document.getElementById('serviceGoogle');
 
   if (serviceOpenAI.checked && openaiApiKey) {
     translationService = 'OpenAI';
+    console.log('saveOptions: OpenAI selected as translation service');
   } else if (serviceGoogle.checked && googleApiKey) {
     translationService = 'Google';
+    console.log('saveOptions: Google selected as translation service');
   }
 
   try {
     const key = await getEncryptionKey();
 
-    // Prepare an object to hold the items to set
     const itemsToSet = {
       targetLanguage,
       openaiPrompt,
       translationService
     };
 
-    // Encrypt and set Google API Key if provided
     if (googleApiKey) {
       const encryptedGoogleData = await encryptData(key, googleApiKey);
       itemsToSet.encryptedGoogleApiKey = JSON.stringify(encryptedGoogleData);
+      console.log('saveOptions: Google API Key encrypted and set');
     }
 
-    // Encrypt and set OpenAI API Key if provided
     if (openaiApiKey) {
       const encryptedOpenAIData = await encryptData(key, openaiApiKey);
       itemsToSet.encryptedOpenaiApiKey = JSON.stringify(encryptedOpenAIData);
+      console.log('saveOptions: OpenAI API Key encrypted and set');
     }
 
-    // Set the encrypted API keys and other settings
     await setStorage(itemsToSet);
 
-    // Remove Google API Key from storage if not provided
     if (!googleApiKey) {
       await removeStorage(['encryptedGoogleApiKey']);
+      console.log('saveOptions: Google API Key removed from storage');
     }
 
-    // Remove OpenAI API Key from storage if not provided
     if (!openaiApiKey) {
       await removeStorage(['encryptedOpenaiApiKey']);
+      console.log('saveOptions: OpenAI API Key removed from storage');
     }
 
-    // Update translationService based on the presence of API keys
     if (!translationService) {
-      // If no translation service is selected, set translationService to null
       await setStorage({ translationService: null });
+      console.log('saveOptions: Translation service set to null');
     }
 
-    // Provide user feedback
     displayMessage('Settings saved securely.', 'success');
   } catch (error) {
-    console.error('Error saving settings:', error);
+    console.error('saveOptions: Error saving settings:', error);
     displayMessage('Failed to save settings. Please try again.', 'error');
   }
 }
@@ -322,6 +350,7 @@ async function saveOptions() {
  * @returns {Promise<void>}
  */
 async function loadOptions() {
+  console.log('loadOptions: Loading options');
   try {
     const items = await getStorage([
       'encryptedGoogleApiKey',
@@ -333,7 +362,6 @@ async function loadOptions() {
 
     const key = await getEncryptionKey();
 
-    // Decrypt API keys if they exist
     let googleApiKey = '';
     let openaiApiKey = '';
 
@@ -341,8 +369,9 @@ async function loadOptions() {
       try {
         const encryptedGoogleData = JSON.parse(items.encryptedGoogleApiKey);
         googleApiKey = await decryptData(key, encryptedGoogleData.iv, encryptedGoogleData.ciphertext);
+        console.log('loadOptions: Google API Key decrypted');
       } catch (e) {
-        console.error('Error decrypting Google API Key:', e);
+        console.error('loadOptions: Error decrypting Google API Key:', e);
         displayMessage('Failed to decrypt Google API Key. It may have been corrupted.', 'error');
       }
     }
@@ -351,8 +380,9 @@ async function loadOptions() {
       try {
         const encryptedOpenAIData = JSON.parse(items.encryptedOpenaiApiKey);
         openaiApiKey = await decryptData(key, encryptedOpenAIData.iv, encryptedOpenAIData.ciphertext);
+        console.log('loadOptions: OpenAI API Key decrypted');
       } catch (e) {
-        console.error('Error decrypting OpenAI API Key:', e);
+        console.error('loadOptions: Error decrypting OpenAI API Key:', e);
         displayMessage('Failed to decrypt OpenAI API Key. It may have been corrupted.', 'error');
       }
     }
@@ -360,9 +390,9 @@ async function loadOptions() {
     const targetLanguage = items.targetLanguage || 'en';
     let openaiPrompt = items.openaiPrompt;
 
-    // Check if openaiPrompt is undefined, null, or empty/whitespace
     if (!openaiPrompt || !openaiPrompt.trim()) {
       openaiPrompt = defaultOpenAIPrompt;
+      console.log('loadOptions: OpenAI prompt was empty, set to default');
     }
 
     document.getElementById('googleApiKey').value = googleApiKey;
@@ -372,7 +402,6 @@ async function loadOptions() {
 
     updateTranslationServiceOptions();
 
-    // Set the translation service checkbox
     const translationService = items.translationService || null;
     const serviceOpenAI = document.getElementById('serviceOpenAI');
     const serviceGoogle = document.getElementById('serviceGoogle');
@@ -380,13 +409,11 @@ async function loadOptions() {
     serviceOpenAI.checked = translationService === 'OpenAI' && !serviceOpenAI.disabled;
     serviceGoogle.checked = translationService === 'Google' && !serviceGoogle.disabled;
 
-    // Show or hide OpenAI prompt container based on the checkbox state
     toggleOpenAIPromptContainer(serviceOpenAI.checked);
 
-    // Provide user feedback
     displayMessage('Settings loaded successfully.', 'success');
   } catch (error) {
-    console.error('Error loading options:', error);
+    console.error('loadOptions: Error loading options:', error);
     displayMessage('Failed to load settings. Please ensure that your data is intact.', 'error');
   }
 }
@@ -395,6 +422,7 @@ async function loadOptions() {
  * Resets the OpenAI prompt to the default value.
  */
 function resetPrompt() {
+  console.log('resetPrompt: Resetting OpenAI prompt to default');
   document.getElementById('openaiPrompt').value = defaultOpenAIPrompt;
   displayMessage('OpenAI prompt reset to default.', 'success');
 }
@@ -404,6 +432,7 @@ function resetPrompt() {
  * @param {boolean} show - Whether to show or hide the container.
  */
 function toggleOpenAIPromptContainer(show) {
+  console.log('toggleOpenAIPromptContainer: Toggling OpenAI prompt container visibility:', show);
   const openaiPromptContainer = document.getElementById('openaiPromptContainer');
   if (show) {
     openaiPromptContainer.style.display = 'block';
@@ -417,11 +446,11 @@ function toggleOpenAIPromptContainer(show) {
  * @param {Event} event - The checkbox change event.
  */
 function handleCheckboxChange(event) {
+  console.log('handleCheckboxChange: Handling checkbox change:', event.target.id, 'Checked:', event.target.checked);
   const serviceOpenAI = document.getElementById('serviceOpenAI');
   const serviceGoogle = document.getElementById('serviceGoogle');
 
   if (event.target.checked) {
-    // Uncheck the other checkbox
     if (event.target.id === 'serviceOpenAI') {
       serviceGoogle.checked = false;
       toggleOpenAIPromptContainer(true);
@@ -430,7 +459,6 @@ function handleCheckboxChange(event) {
       toggleOpenAIPromptContainer(false);
     }
   } else {
-    // If unchecked, hide the OpenAI prompt container
     if (event.target.id === 'serviceOpenAI') {
       toggleOpenAIPromptContainer(false);
     }
@@ -442,6 +470,7 @@ function handleCheckboxChange(event) {
  * Also manages tooltips based on the checkbox's enabled/disabled state.
  */
 function updateTranslationServiceOptions() {
+  console.log('updateTranslationServiceOptions: Updating translation service options');
   const googleApiKey = document.getElementById('googleApiKey').value.trim();
   const openaiApiKey = document.getElementById('openaiApiKey').value.trim();
 
@@ -453,7 +482,6 @@ function updateTranslationServiceOptions() {
   const labelGoogle = document.querySelector('label[for="serviceGoogle"]');
   const tooltipGoogle = labelGoogle.querySelector('.tooltiptext');
 
-  // OpenAI
   if (!openaiApiKey) {
     serviceOpenAI.disabled = true;
     labelOpenAI.style.color = '#999';
@@ -463,10 +491,9 @@ function updateTranslationServiceOptions() {
   } else {
     serviceOpenAI.disabled = false;
     labelOpenAI.style.color = '';
-    tooltipOpenAI.textContent = ''; // Remove tooltip when enabled
+    tooltipOpenAI.textContent = '';
   }
 
-  // Google Translate
   if (!googleApiKey) {
     serviceGoogle.disabled = true;
     labelGoogle.style.color = '#999';
@@ -475,10 +502,9 @@ function updateTranslationServiceOptions() {
   } else {
     serviceGoogle.disabled = false;
     labelGoogle.style.color = '';
-    tooltipGoogle.textContent = ''; // Remove tooltip when enabled
+    tooltipGoogle.textContent = '';
   }
 
-  // Attach event listeners only once
   const checkboxes = [serviceOpenAI, serviceGoogle];
   checkboxes.forEach((checkbox) => {
     checkbox.removeEventListener('change', handleCheckboxChange);
@@ -492,30 +518,30 @@ function updateTranslationServiceOptions() {
  * @param {string} buttonId - The ID of the toggle button.
  */
 function togglePasswordVisibility(inputId, buttonId) {
-  const input = document.getElementById(inputId);
-  const button = document.getElementById(buttonId);
-  if (button) { // Ensure the button exists
-    button.addEventListener('click', () => {
-      if (input.type === 'password') {
-        input.type = 'text';
-        button.textContent = 'Hide';
-      } else {
-        input.type = 'password';
-        button.textContent = 'Show';
-      }
-    });
+    const input = document.getElementById(inputId);
+    const button = document.getElementById(buttonId);
+    if (button) { // Ensure the button exists
+      button.addEventListener('click', () => {
+        if (input.type === 'password') {
+          input.type = 'text';
+          button.textContent = 'Hide';
+        } else {
+          input.type = 'password';
+          button.textContent = 'Show';
+        }
+      });
+    }
   }
-}
-
-// Initialize password visibility toggles
-togglePasswordVisibility('googleApiKey', 'toggleGoogleApiKey');
-togglePasswordVisibility('openaiApiKey', 'toggleOpenAIApiKey');
-
-document.addEventListener('DOMContentLoaded', () => {
-  loadOptions();
-
-  document.getElementById('saveButton').addEventListener('click', saveOptions);
-  document.getElementById('resetPromptButton').addEventListener('click', resetPrompt);
-  document.getElementById('googleApiKey').addEventListener('input', updateTranslationServiceOptions);
-  document.getElementById('openaiApiKey').addEventListener('input', updateTranslationServiceOptions);
-});
+  
+  // Initialize password visibility toggles
+  togglePasswordVisibility('googleApiKey', 'toggleGoogleApiKey');
+  togglePasswordVisibility('openaiApiKey', 'toggleOpenAIApiKey');
+  
+  document.addEventListener('DOMContentLoaded', () => {
+    loadOptions();
+  
+    document.getElementById('saveButton').addEventListener('click', saveOptions);
+    document.getElementById('resetPromptButton').addEventListener('click', resetPrompt);
+    document.getElementById('googleApiKey').addEventListener('input', updateTranslationServiceOptions);
+    document.getElementById('openaiApiKey').addEventListener('input', updateTranslationServiceOptions);
+  });

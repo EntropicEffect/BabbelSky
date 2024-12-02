@@ -4,10 +4,13 @@
  * Listener for messages from content scripts.
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('BabbelSky: Received message:', message, 'from sender:', sender);
     if (message.action === 'translatePost') {
         const post = message.post;
+        console.log('BabbelSky: Translating post:', post);
         translatePost(post)
             .then(translatedPost => {
+                console.log('BabbelSky: Translation successful:', translatedPost);
                 sendResponse({ translatedPost: translatedPost });
             })
             .catch(error => {
@@ -20,6 +23,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Listener for when the extension is installed
 chrome.runtime.onInstalled.addListener(function(details) {
+    console.log('BabbelSky: Extension installed with details:', details);
     if (details.reason === "install") {
         // Open the Options Page
         chrome.runtime.openOptionsPage(function() {
@@ -32,11 +36,12 @@ chrome.runtime.onInstalled.addListener(function(details) {
     }
 });
 
-
 // Listener to inject contentScript.js
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('BabbelSky: Received message to inject content script:', message, 'from sender:', sender);
     if (message.action === 'injectContentScript') {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            console.log('BabbelSky: Active tabs in current window:', tabs);
             if (tabs.length > 0) {
                 chrome.tabs.executeScript(tabs[0].id, { file: 'contentScript.js' }, () => {
                     if (chrome.runtime.lastError) {
@@ -52,14 +57,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true; // Keep the message channel open for async response
     }
 });
+
 /**
  * Translates a single post using the selected translation service.
  * @param {string} post - The post text to translate.
  * @returns {Promise<string>} - The translated post text.
  */
 async function translatePost(post) {
+    console.log('BabbelSky: Starting translation for post:', post);
     // Retrieve settings from storage
     const settings = await getStorage(['encryptedGoogleApiKey', 'encryptedOpenaiApiKey', 'targetLanguage', 'openaiPrompt', 'translationService']);
+    console.log('BabbelSky: Retrieved settings from storage:', settings);
     const {
         encryptedGoogleApiKey,
         encryptedOpenaiApiKey,
@@ -74,6 +82,7 @@ async function translatePost(post) {
 
     // Decrypt API keys
     const key = await getEncryptionKey();
+    console.log('BabbelSky: Decrypted encryption key:', key);
     let googleApiKey = '';
     let openaiApiKey = '';
     let translatedText = '';
@@ -81,13 +90,17 @@ async function translatePost(post) {
     if (translationService === 'Google' && encryptedGoogleApiKey) {
         const encryptedGoogleData = JSON.parse(encryptedGoogleApiKey);
         googleApiKey = await decryptData(key, encryptedGoogleData.iv, encryptedGoogleData.ciphertext);
+        console.log('BabbelSky: Decrypted Google API key:', googleApiKey);
         translatedText = await translateWithGoogle(post, googleApiKey, targetLanguage);
+        console.log('BabbelSky: Translated text with Google:', translatedText);
     }
     else if (translationService === 'OpenAI' && encryptedOpenaiApiKey) {
         const encryptedOpenAIData = JSON.parse(encryptedOpenaiApiKey);
         openaiApiKey = await decryptData(key, encryptedOpenAIData.iv, encryptedOpenAIData.ciphertext);
+        console.log('BabbelSky: Decrypted OpenAI API key:', openaiApiKey);
         translatedText = await translateWithOpenAI(post, openaiApiKey, targetLanguage, openaiPrompt);
-    } else{
+        console.log('BabbelSky: Translated text with OpenAI:', translatedText);
+    } else {
         throw new Error('Invalid translation service or missing API key.');
     }
 
@@ -103,6 +116,7 @@ async function translatePost(post) {
  * @returns {Promise<string>} - Translated text.
  */
 async function translateWithOpenAI(text, apiKey, targetLanguage, prompt) {
+    console.log('BabbelSky: Preparing to translate with OpenAI:', text, targetLanguage, prompt);
     const promptWithTarget = prompt.replace('{TARGET}', targetLanguage).replace('{TEXT}', text);
     const messages = [
         {
@@ -129,10 +143,12 @@ async function translateWithOpenAI(text, apiKey, targetLanguage, prompt) {
 
     if (!response.ok) {
         const errorData = await response.text();
+        console.error('BabbelSky: OpenAI API Error:', errorData);
         throw new Error(`OpenAI API Error: ${errorData}`);
     }
 
     const data = await response.json();
+    console.log('BabbelSky: OpenAI API response data:', data);
 
     if (data.choices && data.choices.length > 0) {
         return data.choices[0].message.content.trim();
@@ -149,21 +165,24 @@ async function translateWithOpenAI(text, apiKey, targetLanguage, prompt) {
  * @returns {Promise<string>} - Translated text.
  */
 async function translateWithGoogle(text, apiKey, targetLanguage) {
+    console.log('BabbelSky: Preparing to translate with Google:', text, targetLanguage);
     const encodedText = encodeURIComponent(text);
     const url = `https://translation.googleapis.com/language/translate/v2?key=${apiKey}&q=${encodedText}&target=${targetLanguage}`;
 
     const response = await fetch(url);
     if (!response.ok) {
         const errorData = await response.text();
+        console.error('BabbelSky: Google Translate API Error:', errorData);
         throw new Error(`Google Translate API Error: ${errorData}`);
     }
 
     const data = await response.json();
+    console.log('BabbelSky: Google Translate API response data:', data);
 
     if (data.data && data.data.translations && data.data.translations.length > 0) {
         return data.data.translations[0].translatedText;
     } else {
-        throw new Error('Google Translate API translation failed.');
+        throw new Error('Google Translate API translation failed.', data);
     }
 }
 
@@ -173,11 +192,14 @@ async function translateWithGoogle(text, apiKey, targetLanguage) {
  * @returns {Promise<Object>} - Promise resolving to retrieved items.
  */
 function getStorage(keys) {
+    console.log('BabbelSky: Retrieving storage for keys:', keys);
     return new Promise((resolve, reject) => {
         chrome.storage.sync.get(keys, (items) => {
             if (chrome.runtime.lastError) {
+                console.error('BabbelSky: Error retrieving storage:', chrome.runtime.lastError);
                 reject(chrome.runtime.lastError);
             } else {
+                console.log('BabbelSky: Retrieved storage items:', items);
                 resolve(items);
             }
         });
@@ -189,11 +211,13 @@ function getStorage(keys) {
  * @returns {Promise<CryptoKey>} - The encryption key.
  */
 async function getEncryptionKey() {
+    console.log('BabbelSky: Retrieving encryption key from local storage');
     const localItems = await getLocalStorage(['encryptionKey']);
     let key = null;
 
     if (localItems.encryptionKey) {
         // Key exists, import it
+        console.log('BabbelSky: Encryption key exists, importing it');
         const rawKey = base64ToArrayBuffer(localItems.encryptionKey);
         key = await window.crypto.subtle.importKey(
             'raw',
@@ -204,6 +228,7 @@ async function getEncryptionKey() {
         );
     } else {
         // Generate a new key
+        console.log('BabbelSky: Generating new encryption key');
         key = await window.crypto.subtle.generateKey(
             {
                 name: 'AES-GCM',
@@ -219,6 +244,7 @@ async function getEncryptionKey() {
         await setLocalStorage({ encryptionKey: exportedKeyBase64 });
     }
 
+    console.log('BabbelSky: Encryption key retrieved/generated:', key);
     return key;
 }
 
@@ -230,6 +256,7 @@ async function getEncryptionKey() {
  * @returns {Promise<string>} - The decrypted plaintext data.
  */
 async function decryptData(key, ivBase64, ciphertextBase64) {
+    console.log('BabbelSky: Decrypting data with key:', key);
     const decoder = new TextDecoder();
     const iv = new Uint8Array(base64ToArrayBuffer(ivBase64));
     const ciphertext = base64ToArrayBuffer(ciphertextBase64);
@@ -243,7 +270,9 @@ async function decryptData(key, ivBase64, ciphertextBase64) {
             key,
             ciphertext
         );
-        return decoder.decode(decrypted);
+        const decryptedText = decoder.decode(decrypted);
+        console.log('BabbelSky: Decryption successful:', decryptedText);
+        return decryptedText;
     } catch (e) {
         console.error('BabbelSky: Decryption failed:', e);
         throw new Error('Failed to decrypt data. Possible data corruption.');
@@ -256,10 +285,13 @@ async function decryptData(key, ivBase64, ciphertextBase64) {
  * @returns {string} - Base64 encoded string.
  */
 function arrayBufferToBase64(buffer) {
+    console.log('BabbelSky: Converting ArrayBuffer to Base64');
     let binary = '';
     const bytes = new Uint8Array(buffer);
     bytes.forEach((b) => binary += String.fromCharCode(b));
-    return window.btoa(binary);
+    const base64String = window.btoa(binary);
+    console.log('BabbelSky: Converted ArrayBuffer to Base64:', base64String);
+    return base64String;
 }
 
 /**
@@ -268,13 +300,16 @@ function arrayBufferToBase64(buffer) {
  * @returns {ArrayBuffer} - The resulting ArrayBuffer.
  */
 function base64ToArrayBuffer(base64) {
+    console.log('BabbelSky: Converting Base64 to ArrayBuffer');
     const binary = window.atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
+        bytes[i] = binary.charCodeAt(i);
     }
-    return bytes.buffer;
-  }
+    const arrayBuffer = bytes.buffer;
+    console.log('BabbelSky: Converted Base64 to ArrayBuffer:', arrayBuffer);
+    return arrayBuffer;
+}
 
 /**
  * Promisified version of chrome.storage.local.get.
@@ -282,11 +317,14 @@ function base64ToArrayBuffer(base64) {
  * @returns {Promise<Object>} - Promise resolving to retrieved items.
  */
 function getLocalStorage(keys) {
+    console.log('BabbelSky: Retrieving local storage for keys:', keys);
     return new Promise((resolve, reject) => {
         chrome.storage.local.get(keys, (items) => {
             if (chrome.runtime.lastError) {
+                console.error('BabbelSky: Error retrieving local storage:', chrome.runtime.lastError);
                 reject(chrome.runtime.lastError);
             } else {
+                console.log('BabbelSky: Retrieved local storage items:', items);
                 resolve(items);
             }
         });
@@ -299,11 +337,14 @@ function getLocalStorage(keys) {
  * @returns {Promise<void>}
  */
 function setLocalStorage(items) {
+    console.log('BabbelSky: Setting local storage items:', items);
     return new Promise((resolve, reject) => {
         chrome.storage.local.set(items, () => {
             if (chrome.runtime.lastError) {
+                console.error('BabbelSky: Error setting local storage:', chrome.runtime.lastError);
                 reject(chrome.runtime.lastError);
             } else {
+                console.log('BabbelSky: Local storage items set successfully');
                 resolve();
             }
         });
@@ -316,6 +357,7 @@ function setLocalStorage(items) {
  * @param {string} type - The type of message ('success' or 'error').
  */
 function displayMessage(message, type) {
+    console.log(`BabbelSky: Displaying ${type} message to user: ${message}`);
     // Implement user feedback mechanism, e.g., notifications or UI elements
     console.log(`BabbelSky: ${type.toUpperCase()} - ${message}`);
 }
