@@ -4,19 +4,18 @@
  */
 
 (function () {
-    console.log('BabbelSky: detector.js loaded');
   
     /**
      * Checks for the translation button and sends a message to the background script if found.
      */
     function checkForTranslationButton() {
-      console.log('BabbelSky: Checking for translation button');
+
   
       // Use the selector based on aria-label
       const translationButton = document.querySelector('a[aria-label="Translate"]');
   
       if (translationButton) {
-        console.log('BabbelSky: Translation button found');
+
   
         // Disconnect the observer to stop observing changes
         observer.disconnect();
@@ -25,8 +24,6 @@
         chrome.runtime.sendMessage({ action: 'injectContentScript' }, () => {
           if (chrome.runtime.lastError) {
             console.error('BabbelSky: Error sending message to background.js:', chrome.runtime.lastError);
-          } else {
-            console.log('BabbelSky: Message sent to background.js to inject contentScript.js');
           }
         });
       } else {

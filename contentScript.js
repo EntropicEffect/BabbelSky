@@ -7,7 +7,6 @@
  * Extracts the text from the active main post and sends it for translation.
  */
 (function () {
-    console.log('BabbelSky: contentScript.js loaded and executing.');
 
     /**
      * Labels used to identify the translation button in different languages.
@@ -53,7 +52,6 @@
         const textElement = postElement.querySelector('[data-word-wrap="1"]');
         if (textElement) {
             const postText = textElement.textContent.trim();
-            console.log(`BabbelSky: Extracted post text: "${postText}"`);
             return postText;
         } else {
             console.warn('BabbelSky: No text element found within the post.');
@@ -85,7 +83,6 @@
         // Send the post text to the background script for translation
         chrome.runtime.sendMessage({ action: 'translatePost', post: postText }, (response) => {
             if (response && response.translatedPost) {
-                console.log('BabbelSky: Translated Post:', response.translatedPost);
                 // Inject the translated text into the DOM
                 addTranslatedText(translateButton, response.translatedPost);
             } else if (response && response.error) {
@@ -138,7 +135,6 @@
         // Insert the translated text element after the original text element
         textElement.parentNode.insertBefore(translatedTextElement, textElement.nextSibling);
    
-       console.log('BabbelSky: Translated text added successfully.');
    }
     /**
      * Initializes the content script by attaching the click event listener to the "Translate" button.
@@ -149,7 +145,6 @@
         if (translateButton) {
             // Attach event listener to the "Translate" button
             translateButton.addEventListener('click', handleTranslateButtonClick, true);
-            console.log('BabbelSky: "Translate" button event listener attached.');
         } else {
             console.warn('BabbelSky: "Translate" button not found on initialization.');
         }
@@ -169,7 +164,6 @@
                             translateButton.setAttribute('data-babbelsky-listener', 'true');
                             // Attach the event listener
                             translateButton.addEventListener('click', handleTranslateButtonClick, true);
-                            console.log('BabbelSky: "Translate" button event listener attached via MutationObserver.');
                         }
                     }
                 }

@@ -25,8 +25,6 @@ chrome.runtime.onInstalled.addListener(function(details) {
         chrome.runtime.openOptionsPage(function() {
             if (chrome.runtime.lastError) {
                 console.error('BabbelSky: Failed to open Options Page on install.', chrome.runtime.lastError);
-            } else {
-                console.log('BabbelSky: Options Page opened on install.');
             }
         });
     }
@@ -43,7 +41,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         console.error('Error injecting contentScript.js:', chrome.runtime.lastError);
                         sendResponse({ success: false, error: chrome.runtime.lastError.message });
                     } else {
-                        console.log('contentScript.js successfully injected');
                         sendResponse({ success: true });
                     }
                 });
