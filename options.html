@@ -126,7 +126,16 @@
     .translation-service.disabled input[type="checkbox"] {
       cursor: not-allowed;
     }
-  </style>
+    .info-note {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #f8f9fa; 
+        border-left: 4px solid #007BFF; /
+        font-size: 14px;
+        color: #333; c
+        line-height: 1.5;
+        }
+    </style>
 </head>
 <body>
   <h1>BabbelSky Settings</h1>
@@ -175,6 +184,11 @@
     <label for="targetLanguage">Target Translation Language:</label>
     <select id="targetLanguage">
     </select>
+
+    <!-- Note about saving settings -->
+    <p class="info-note">
+        <strong>Note:</strong> Changes will not take effect until you click the "Save Settings" button below.
+    </p>
     
     <!-- Buttons -->
     <button type="button" id="saveButton">Save Settings</button>

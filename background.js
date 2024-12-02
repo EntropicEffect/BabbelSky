@@ -163,14 +163,6 @@ async function rateLimitedApiCall(url, options) {
  * @param {string} prompt - Custom translation prompt.
  * @returns {Promise<string>} - Translated text.
  */
-/**
- * Translates text using OpenAI's API.
- * @param {string} text - Text to translate.
- * @param {string} apiKey - OpenAI API key.
- * @param {string} targetLanguageName - Target language.
- * @param {string} prompt - Custom translation prompt.
- * @returns {Promise<string>} - Translated text.
- */
 async function translateWithOpenAI(text, apiKey, targetLanguageName, prompt) {
   const promptWithTarget = prompt
     .replace("{TARGET}", targetLanguageName)
