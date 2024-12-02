@@ -7,9 +7,6 @@
  * Extracts the text from the active main post and sends it for translation.
  */
 (function () {
-  // Compatability with Firefox and Chrome
-  const storage = window.browser || window.chrome;
-
   /**
    * Labels used to identify the translation button in different languages.
    * Extend this array if Bluesky supports more languages.
@@ -59,6 +56,27 @@
   }
 
   /**
+   * Promisified version of chrome.storage.sync.get.
+   * @param {string[]|Object} keys - Keys to retrieve.
+   * @returns {Promise<Object>} - Promise resolving to retrieved items.
+   */
+  function getStorage(keys) {
+    return new Promise((resolve, reject) => {
+      if (!chrome.storage || !chrome.runtime) {
+        reject(new Error("Chrome storage or runtime is not available."));
+        return;
+      }
+      chrome.storage.sync.get(keys, (items) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(items);
+        }
+      });
+    });
+  }
+
+  /**
    * Extracts text from the post containing the provided "Translate" button.
    * @param {HTMLElement} translateButton - The "Translate" button element.
    * @returns {string|null} - The extracted post text or null if not found.
@@ -102,9 +120,24 @@
     event.stopImmediatePropagation();
 
     // Check if a translation service is selected
-    storage.storage.local.get("selectedService", ({ selectedService }) => {
+    getStorage(["translationService"]).then((result) => {
+      const selectedService = result.translationService;
       if (!selectedService) {
-        return; // No custom action; default Bluesky behavior proceeds
+        // Allow default Bluesky behavior to proceed
+        if (translateButton) {
+          translateButton.removeEventListener(
+            "click",
+            handleTranslateButtonClick,
+            true,
+          );
+          translateButton.click();
+          translateButton.addEventListener(
+            "click",
+            handleTranslateButtonClick,
+            true,
+          );
+        }
+        return;
       }
 
       let postText = null;
