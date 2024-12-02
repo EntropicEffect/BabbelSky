@@ -7,6 +7,9 @@
  * Extracts the text from the active main post and sends it for translation.
  */
 (function () {
+  // Compatability with Firefox and Chrome
+  const storage = window.browser || window.chrome;
+
   /**
    * Labels used to identify the translation button in different languages.
    * Extend this array if Bluesky supports more languages.
@@ -91,40 +94,52 @@
    * @param {Event} event - The click event object.
    */
   function handleTranslateButtonClick(event) {
-    // Prevent the default translation behavior
-    event.preventDefault();
-    event.stopImmediatePropagation();
-
     // Extract the "Translate" button that was clicked
     const translateButton = event.currentTarget;
 
-    // Extract the post text from the associated post
-    const postText = extractPostText(translateButton);
+    // Prevent the default translation behavior immediately
+    event.preventDefault();
+    event.stopImmediatePropagation();
 
-    if (!postText) {
-      console.warn("BabbelSky: No post text found to translate.");
-      return;
-    }
+    // Check if a translation service is selected
+    storage.storage.local.get("selectedService", ({ selectedService }) => {
+      if (!selectedService) {
+        return; // No custom action; default Bluesky behavior proceeds
+      }
 
-    // Send the post text to the background script for translation
-    chrome.runtime.sendMessage(
-      { action: "translatePost", post: postText },
-      (response) => {
-        if (response && response.translatedPost) {
-          // Inject the translated text into the DOM
-          addTranslatedText(translateButton, response.translatedPost);
-        } else if (response && response.error) {
-          console.error("BabbelSky: Translation Error:", response.error);
-          alert(`BabbelSky Translation Error: ${response.error}`);
-        } else {
-          console.warn(
-            "BabbelSky: Unexpected response from background script.",
-          );
+      let postText = null;
+
+      try {
+        // Extract the post text from the associated post
+        postText = extractPostText(translateButton);
+
+        if (!postText) {
+          console.warn("BabbelSky: No post text found to translate.");
+          return;
         }
-      },
-    );
-  }
 
+        // Send the post text to the background script for translation
+        chrome.runtime.sendMessage(
+          { action: "translatePost", post: postText },
+          (response) => {
+            if (response && response.translatedPost) {
+              // Inject the translated text into the DOM
+              addTranslatedText(translateButton, response.translatedPost);
+            } else if (response && response.error) {
+              console.error("BabbelSky: Translation Error:", response.error);
+              alert(`BabbelSky Translation Error: ${response.error}`);
+            } else {
+              console.warn(
+                "BabbelSky: Unexpected response from background script.",
+              );
+            }
+          },
+        );
+      } catch (error) {
+        console.error("BabbelSky: Unexpected error occurred.", error);
+      }
+    });
+  }
   /**
    * Adds the translated text below the original post text.
    * @param {HTMLElement} translateButton - The "Translate" button element.
