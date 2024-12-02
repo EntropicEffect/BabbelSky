@@ -39,6 +39,8 @@
         '翻譯',
         ]; // Add more as needed
 
+    let detectedLanguage = null; // Placeholder for detected language
+
     /**
      * Selects the "Translate" button based on predefined labels.
      * @returns {HTMLElement|null} - The "Translate" button element or null if not found.
@@ -47,6 +49,7 @@
         for (const label of translationButtonLabels) {
             const button = document.querySelector(`a[aria-label="${label}"]`);
             if (button) {
+                detectedLanguage = label; // Store the detected language
                 return button;
             }
         }
@@ -190,13 +193,9 @@
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === 1) { // ELEMENT_NODE
                         let translateButton = null;
-    
-                        // Check if the node or its descendants match any of the translation button labels
-                        for (const label of translationButtonLabels) {
-                            translateButton = node.querySelector(`a[aria-label="${label}"]`) || 
-                                              (node.matches(`a[aria-label="${label}"]`) ? node : null);
-                            if (translateButton) break; // Exit loop if a matching button is found
-                        }
+                    // Check if the node or its descendants match the detected translation button label
+                        translateButton = node.querySelector(`a[aria-label="${detectedLanguage}"]`) || 
+                                            (node.matches(`a[aria-label="${detectedLanguage}"]`) ? node : null);                    
     
                         if (translateButton && !translateButton.hasAttribute('data-babbelsky-listener')) {
                             // Mark the button to prevent duplicate listeners
