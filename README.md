@@ -138,7 +138,6 @@ This is a free service for the first 500,000 characters every month.
 ---
 
 ## Known Bugs
-  - No rate-limiting on the translate button so DON'T spam it.
   - No way to hide translations
 
 ---
