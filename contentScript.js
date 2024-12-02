@@ -13,7 +13,31 @@
      * Extend this array if Bluesky supports more languages.
      * @type {string[]}
      */
-    const translationButtonLabels = ['Translate', 'Traducir', 'Traduire']; // Add more as needed
+    const translationButtonLabels = [
+        'Translate',
+        'Traducir', 
+        'Tradueix',
+        'Übersetzen',
+        'Käännä', 
+        'Traduire',
+        'Aistrigh',
+        'अनुवाद करें',
+        'Lefordítás',
+        'Terjemahkan',
+        'Traduci',
+        '翻訳',
+        '번역',
+        'Vertalen',
+        'Przetłumacz',
+        'Traduzir',
+        'Перевести',
+        'Çevir',
+        'Перекласти',
+        'Dịch',
+        '翻译',
+        '翻譯',
+        '翻譯',
+        ]; // Add more as needed
 
     /**
      * Selects the "Translate" button based on predefined labels.
