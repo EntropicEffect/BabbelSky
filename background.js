@@ -56,11 +56,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  */
 async function translatePost(post) {
     // Retrieve settings from storage
-    const settings = await getStorage(['encryptedGoogleApiKey', 'encryptedOpenaiApiKey', 'targetLanguage', 'openaiPrompt', 'translationService']);
+    const settings = await getStorage(['encryptedGoogleApiKey', 'encryptedOpenaiApiKey', 'targetLanguage', 'targetLanguageName', 'openaiPrompt', 'translationService']);
     const {
         encryptedGoogleApiKey,
         encryptedOpenaiApiKey,
         targetLanguage,
+        targetLanguageName,
         openaiPrompt,
         translationService
     } = settings;
@@ -83,7 +84,7 @@ async function translatePost(post) {
     else if (translationService === 'OpenAI' && encryptedOpenaiApiKey) {
         const encryptedOpenAIData = JSON.parse(encryptedOpenaiApiKey);
         openaiApiKey = await decryptData(key, encryptedOpenAIData.iv, encryptedOpenAIData.ciphertext);
-        translatedText = await translateWithOpenAI(post, openaiApiKey, targetLanguage, openaiPrompt);
+        translatedText = await translateWithOpenAI(post, openaiApiKey, targetLanguageName, openaiPrompt);
     } else{
         throw new Error('Invalid translation service or missing API key.');
     }
@@ -95,12 +96,12 @@ async function translatePost(post) {
  * Translates text using OpenAI's API.
  * @param {string} text - Text to translate.
  * @param {string} apiKey - OpenAI API key.
- * @param {string} targetLanguage - Target language code.
+ * @param {string} targetLanguageName - Target language.
  * @param {string} prompt - Custom translation prompt.
  * @returns {Promise<string>} - Translated text.
  */
-async function translateWithOpenAI(text, apiKey, targetLanguage, prompt) {
-    const promptWithTarget = prompt.replace('{TARGET}', targetLanguage).replace('{TEXT}', text);
+async function translateWithOpenAI(text, apiKey, targetLanguageName, prompt) {
+    const promptWithTarget = prompt.replace('{TARGET}', targetLanguageName).replace('{TEXT}', text);
     const messages = [
         {
             role: 'system',

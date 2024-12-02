@@ -7,6 +7,140 @@
 const defaultOpenAIPrompt = "Translate the following text to natural {TARGET}:\n\n{TEXT}";
 
 /**
+ * An array of objects representing supported languages for translation.
+ * Each object contains the language's name and its corresponding language code.
+ * 
+ * @constant {Array<{name: string, code: string}>}
+ * @property {string} name - The full name of the language (e.g., "English").
+ * @property {string} code - The language code (e.g., "en").
+ */
+const languages = [
+    { name: "Abkhaz", code: "ab" },
+    { name: "Acehnese", code: "ace" },
+    { name: "Acholi", code: "ach" },
+    { name: "Afrikaans", code: "af" },
+    { name: "Albanian", code: "sq" },
+    { name: "Alur", code: "alz" },
+    { name: "Amharic", code: "am" },
+    { name: "Arabic", code: "ar" },
+    { name: "Armenian", code: "hy" },
+    { name: "Assamese", code: "as" },
+    { name: "Awadhi", code: "awa" },
+    { name: "Aymara", code: "ay" },
+    { name: "Azerbaijani", code: "az" },
+    { name: "Balinese", code: "ban" },
+    { name: "Bambara", code: "bm" },
+    { name: "Bashkir", code: "ba" },
+    { name: "Basque", code: "eu" },
+    { name: "Batak Karo", code: "btx" },
+    { name: "Batak Simalungun", code: "bts" },
+    { name: "Batak Toba", code: "bbc" },
+    { name: "Belarusian", code: "be" },
+    { name: "Bemba", code: "bem" },
+    { name: "Bengali", code: "bn" },
+    { name: "Betawi", code: "bew" },
+    { name: "Bhojpuri", code: "bho" },
+    { name: "Bikol", code: "bik" },
+    { name: "Bosnian", code: "bs" },
+    { name: "Breton", code: "br" },
+    { name: "Bulgarian", code: "bg" },
+    { name: "Buryat", code: "bua" },
+    { name: "Cantonese", code: "yue" },
+    { name: "Catalan", code: "ca" },
+    { name: "Cebuano", code: "ceb" },
+    { name: "Chichewa (Nyanja)", code: "ny" },
+    { name: "Chinese (Simplified)", code: "zh-CN" },
+    { name: "Chinese (Traditional)", code: "zh-TW" },
+    { name: "Chuvash", code: "cv" },
+    { name: "Corsican", code: "co" },
+    { name: "Crimean Tatar", code: "crh" },
+    { name: "Croatian", code: "hr" },
+    { name: "Czech", code: "cs" },
+    { name: "Danish", code: "da" },
+    { name: "Dinka", code: "din" },
+    { name: "Divehi", code: "dv" },
+    { name: "Dogri", code: "doi" },
+    { name: "Dombe", code: "dov" },
+    { name: "Dutch", code: "nl" },
+    { name: "Dzongkha", code: "dz" },
+    { name: "English", code: "en"},
+    { name: "Esperanto", code: "eo" },
+    { name: "Estonian", code: "et" },
+    { name: "Ewe", code: "ee" },
+    { name: "Fijian", code: "fj" },
+    { name: "Filipino (Tagalog)", code: "fil" },
+    { name: "Finnish", code: "fi" },
+    { name: "French", code: "fr" },
+    { name: "Frisian", code: "fy" },
+    { name: "Galician", code: "gl" },
+    { name: "Georgian", code: "ka" },
+    { name: "German", code: "de" },
+    { name: "Greek", code: "el" },
+    { name: "Gujarati", code: "gu" },
+    { name: "Haitian Creole", code: "ht" },
+    { name: "Hausa", code: "ha" },
+    { name: "Hawaiian", code: "haw" },
+    { name: "Hebrew", code: "he" },
+    { name: "Hindi", code: "hi" },
+    { name: "Hmong", code: "hmn" },
+    { name: "Hungarian", code: "hu" },
+    { name: "Icelandic", code: "is" },
+    { name: "Igbo", code: "ig" },
+    { name: "Indonesian", code: "id" },
+    { name: "Irish", code: "ga" },
+    { name: "Italian", code: "it" },
+    { name: "Japanese", code: "ja" },
+    { name: "Javanese", code: "jw" },
+    { name: "Kannada", code: "kn" },
+    { name: "Kazakh", code: "kk" },
+    { name: "Khmer", code: "km" },
+    { name: "Korean", code: "ko" },
+    { name: "Kurdish (Kurmanji)", code: "ku" },
+    { name: "Kurdish (Sorani)", code: "ckb" },
+    { name: "Kyrgyz", code: "ky" },
+    { name: "Lao", code: "lo" },
+    { name: "Latvian", code: "lv" },
+    { name: "Lithuanian", code: "lt" },
+    { name: "Luxembourgish", code: "lb" },
+    { name: "Macedonian", code: "mk" },
+    { name: "Malay", code: "ms" },
+    { name: "Malayalam", code: "ml" },
+    { name: "Maltese", code: "mt" },
+    { name: "Maori", code: "mi" },
+    { name: "Marathi", code: "mr" },
+    { name: "Mongolian", code: "mn" },
+    { name: "Nepali", code: "ne" },
+    { name: "Norwegian", code: "no" },
+    { name: "Pashto", code: "ps" },
+    { name: "Persian", code: "fa" },
+    { name: "Polish", code: "pl" },
+    { name: "Portuguese", code: "pt" },
+    { name: "Punjabi", code: "pa" },
+    { name: "Romanian", code: "ro" },
+    { name: "russian", code: "ru" },
+    { name: "Serbian", code: "sr" },
+    { name: "Sinhala", code: "si" },
+    { name: "Slovak", code: "sk" },
+    { name: "Slovenian", code: "sl" },
+    { name: "Somali", code: "so" },
+    { name: "Spanish", code: "es" },
+    { name: "Swahili", code: "sw" },
+    { name: "Swedish", code: "sv" },
+    { name: "Tajik", code: "tg" },
+    { name: "Tamil", code: "ta" },
+    { name: "Telugu", code: "te" },
+    { name: "Thai", code: "th" },
+    { name: "Turkish", code: "tr" },
+    { name: "Ukrainian", code: "uk" },
+    { name: "Urdu", code: "ur" },
+    { name: "Uzbek", code: "uz" },
+    { name: "Vietnamese", code: "vi" },
+    { name: "Welsh", code: "cy" },
+    { name: "Zulu", code: "zu" }
+  ];
+
+
+/**
  * Promisified version of chrome.storage.sync.get.
  * @param {string[]|Object} keys - Keys to retrieve.
  * @returns {Promise<Object>} - Promise resolving to retrieved items.
@@ -215,6 +349,7 @@ async function decryptData(key, ivBase64, ciphertextBase64) {
   }
 }
 
+
 /**
  * Displays a message to the user.
  * @param {string} message - The message to display.
@@ -249,6 +384,7 @@ async function saveOptions() {
   const googleApiKey = document.getElementById('googleApiKey').value.trim();
   const openaiApiKey = document.getElementById('openaiApiKey').value.trim();
   const targetLanguage = document.getElementById('targetLanguage').value;
+  const targetLanguageName = languages.find(lang => lang.code === targetLanguage).name;
   let openaiPrompt = document.getElementById('openaiPrompt').value.trim();
 
   // If the OpenAI prompt is empty or whitespace, use the default prompt
@@ -274,6 +410,7 @@ async function saveOptions() {
     // Prepare an object to hold the items to set
     const itemsToSet = {
       targetLanguage,
+      targetLanguageName,
       openaiPrompt,
       translationService
     };
@@ -358,6 +495,7 @@ async function loadOptions() {
     }
 
     const targetLanguage = items.targetLanguage || 'en';
+
     let openaiPrompt = items.openaiPrompt;
 
     // Check if openaiPrompt is undefined, null, or empty/whitespace
@@ -511,11 +649,23 @@ function togglePasswordVisibility(inputId, buttonId) {
 togglePasswordVisibility('googleApiKey', 'toggleGoogleApiKey');
 togglePasswordVisibility('openaiApiKey', 'toggleOpenAIApiKey');
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadOptions();
+function populateTargetLanguageDropdown() {
+    const dropdown = document.getElementById("targetLanguage");
+    languages.forEach(language => {
+        const option = document.createElement("option");
+        option.value = language.code;
+        option.textContent = language.name;
+        dropdown.appendChild(option);
+    });
+}
 
-  document.getElementById('saveButton').addEventListener('click', saveOptions);
-  document.getElementById('resetPromptButton').addEventListener('click', resetPrompt);
-  document.getElementById('googleApiKey').addEventListener('input', updateTranslationServiceOptions);
-  document.getElementById('openaiApiKey').addEventListener('input', updateTranslationServiceOptions);
+document.addEventListener('DOMContentLoaded', () => {
+
+    populateTargetLanguageDropdown();
+    loadOptions();
+
+    document.getElementById('saveButton').addEventListener('click', saveOptions);
+    document.getElementById('resetPromptButton').addEventListener('click', resetPrompt);
+    document.getElementById('googleApiKey').addEventListener('input', updateTranslationServiceOptions);
+    document.getElementById('openaiApiKey').addEventListener('input', updateTranslationServiceOptions);
 });
