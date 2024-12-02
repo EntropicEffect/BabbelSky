@@ -26,9 +26,7 @@
             console.error('BabbelSky: Error sending message to background.js:', chrome.runtime.lastError);
           }
         });
-      } else {
-        console.log('BabbelSky: Translation button not found');
-      }
+      } 
     }
   
     // Create a MutationObserver to watch for changes in the DOM

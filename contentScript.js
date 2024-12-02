@@ -21,9 +21,8 @@
      */
     function getTranslateButton() {
         for (const label of translationButtonLabels) {
-            const buttons = document.querySelectorAll(`a[aria-label="${label}"]`);
-            for (const button of buttons) {
-                // Since only main posts have the Translate button, return the first found
+            const button = document.querySelector(`a[aria-label="${label}"]`);
+            if (button) {
                 return button;
             }
         }
@@ -74,6 +73,7 @@
 
         // Extract the post text from the associated post
         const postText = extractPostText(translateButton);
+ 
 
         if (!postText) {
             console.warn('BabbelSky: No post text found to translate.');
@@ -120,7 +120,8 @@
         }
 
         // Check if the translated text is already added to prevent duplicates
-        if (postElement.querySelector('.babbelsky-translated-text')) {
+        const existingTranslation = postElement.querySelector(`.babbelsky-translated-text[data-original="${translateButton.dataset.original}"]`);
+        if (existingTranslation) {
             console.log('BabbelSky: Translated text already exists for this post.');
             return;
         }
@@ -145,20 +146,34 @@
         if (translateButton) {
             // Attach event listener to the "Translate" button
             translateButton.addEventListener('click', handleTranslateButtonClick, true);
+
+            // Mark the button to prevent duplicate listeners
+            translateButton.setAttribute('data-babbelsky-listener', 'true');
+
         } else {
             console.warn('BabbelSky: "Translate" button not found on initialization.');
         }
     }
 
     /**
-     * Observes the DOM for changes to dynamically attach event listeners to the "Translate" button.
-     */
-    function observeTranslateButton() {
+    * Observes the DOM for changes to dynamically attach event listeners to the "Translate" button.
+    */
+
+    function observeTranslationButton() {
+        // Create a MutationObserver to watch for changes in the DOM
         const observer = new MutationObserver((mutations) => {
-            for (const mutation of mutations) {
-                for (const node of mutation.addedNodes) {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === 1) { // ELEMENT_NODE
-                        const translateButton = getTranslateButton();
+                        let translateButton = null;
+    
+                        // Check if the node or its descendants match any of the translation button labels
+                        for (const label of translationButtonLabels) {
+                            translateButton = node.querySelector(`a[aria-label="${label}"]`) || 
+                                              (node.matches(`a[aria-label="${label}"]`) ? node : null);
+                            if (translateButton) break; // Exit loop if a matching button is found
+                        }
+    
                         if (translateButton && !translateButton.hasAttribute('data-babbelsky-listener')) {
                             // Mark the button to prevent duplicate listeners
                             translateButton.setAttribute('data-babbelsky-listener', 'true');
@@ -166,11 +181,11 @@
                             translateButton.addEventListener('click', handleTranslateButtonClick, true);
                         }
                     }
-                }
-            }
+                });
+            });
         });
-
-        // Start observing the document body for added nodes
+    
+        // Start observing the document body for added nodes and subtree modifications
         observer.observe(document.body, { childList: true, subtree: true });
     }
 
@@ -183,5 +198,5 @@
     }
 
     // Start observing for dynamically added "Translate" buttons
-    observeTranslateButton();
+    observeTranslationButton();
 })();
