@@ -140,7 +140,6 @@ This is a free service for the first 500,000 characters every month.
 ## Known Bugs
   - No rate-limiting on the translate button so DON'T spam it.
   - No way to hide translations
-  - At the moment, only one post can be translated at a time, and you have to refresh the page if you want to translate another. WORKING ON THIS.
   - Will probably not work if your app language is not currently set to English. Will fill this soon!
 
 ---
