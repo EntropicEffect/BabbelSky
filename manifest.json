@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "BabbelSky",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Enhances the translation feature on Bluesky posts using custom translation services.",
   "permissions": [
     "activeTab",
