@@ -2,6 +2,8 @@
 
 BabbelSky is a Firefox extension that enhances your experience on [Bluesky Social](https://bsky.app/) by providing seamless translation of posts using your choice of translation services.
 
+You can find it in the Firefox Add-ons Market place here [BabbelSky](https://addons.mozilla.org/en-US/firefox/addon/babbelsky/)
+
 **Note:** BabbelSky is currently in **Beta**. We're actively working on improvements and welcome any feedback or contributions.
 
 ---
@@ -46,9 +48,13 @@ We appreciate your understanding and encourage you to report any issues or sugge
 
 ## Installation
 
-### Loading the Extension in Firefox
+### Firefox Add-ons Marketplace
 
-Since BabbelSky is still in Beta, it is not yet available in the Firefox Add-ons Marketplace. You can load it manually using the following steps:
+Easy install from the Firefox Add-ons Marketplace here [BabbelSky](https://addons.mozilla.org/en-US/firefox/addon/babbelsky/)
+
+### Manually Loading the Extension in Firefox
+
+You can load it manually using the following steps:
 
 1. **Download the BabbelSky Repository:**
    - Clone this repository or download it as a ZIP file and extract it to a convenient location on your computer.
