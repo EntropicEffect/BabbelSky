@@ -32,10 +32,12 @@ jobs:
 
       - name: Install ESLint
         run: |
+          npm update
           npm install eslint@latest
           npm install @microsoft/eslint-formatter-sarif@latest
           npm install eslint-plugin-mozilla@latest
           npm install eslint-plugin-prettier@latest
+          npm install eslint-config-prettier@latest
 
       - name: Run ESLint
         env:
