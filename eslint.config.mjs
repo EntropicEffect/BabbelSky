@@ -32,4 +32,8 @@ export default [...compat.extends(
     },
 
     rules: {},
+    // Add the ignorePatterns here
+    ignorePatterns: [
+        "eslint.config.mjs", 
+    ],
 }];
