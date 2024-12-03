@@ -22,7 +22,7 @@
   "content_security_policy": "default-src 'self'; script-src 'self'; connect-src 'self' https://api.openai.com https://translation.googleapis.com; object-src 'self';",
   "content_scripts": [
     {
-      "matches": ["*://bsky.app/profile/*/post/*"],
+      "matches": ["*://bsky.app/*"],
       "js": ["detector.js"],
       "run_at": "document_end"
     }
